@@ -10,7 +10,8 @@ local FILES = {
     "03_antiaim.lua",
     "04_wallhack.lua",
     "05_serverposition.lua",
-    "06_movement.lua",
+    "06a_movement_fly_bhop.lua",
+    "06b_movement_speed_strafer.lua",
     "07_ui.lua",
 }
 
