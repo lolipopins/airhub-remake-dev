@@ -1,13 +1,5 @@
 --[[
-    ============================================================================
     AirHub — Modular Loader
-    ============================================================================
-    Loads all modules from a GitHub repository (raw URLs).
-
-    USAGE:
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/lolipopins/airhub-remake-dev/main/loader.lua"))()
-
-    ============================================================================
 ]]
 
 local REPO = "https://raw.githubusercontent.com/lolipopins/airhub-remake-dev/main/src/"
