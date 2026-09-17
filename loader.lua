@@ -12,7 +12,8 @@ local FILES = {
     "05_serverposition.lua",
     "06a_movement_fly_bhop.lua",
     "06b_movement_speed_strafer.lua",
-    "07_ui.lua",
+    "07a_ui_core.lua",
+    "07b_ui_tabs.lua",
 }
 
 local function Fetch(url)
