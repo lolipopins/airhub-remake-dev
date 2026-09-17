@@ -1,8 +1,17 @@
-local REPO = "local REPO = "https://raw.githubusercontent.com/lolipopins/airhub-remake-dev/main/src/""
+--[[
+    ============================================================================
+    AirHub — Modular Loader
+    ============================================================================
+    Loads all modules from a GitHub repository (raw URLs).
 
---// ---------------------------------------------------------------------------
---// Module list — DO NOT reorder unless you know what you're doing
---// ---------------------------------------------------------------------------
+    USAGE:
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/lolipopins/airhub-remake-dev/main/loader.lua"))()
+
+    ============================================================================
+]]
+
+local REPO = "https://raw.githubusercontent.com/lolipopins/airhub-remake-dev/main/src/"
+
 local FILES = {
     "01_core.lua",
     "02_aimbot.lua",
@@ -13,9 +22,6 @@ local FILES = {
     "07_ui.lua",
 }
 
---// ---------------------------------------------------------------------------
---// Fetch helper (game:HttpGet → request fallback)
---// ---------------------------------------------------------------------------
 local function Fetch(url)
     local ok, res = pcall(function() return game:HttpGet(url) end)
     if ok and type(res) == "string" and #res > 0 then return res end
@@ -28,9 +34,6 @@ local function Fetch(url)
     return nil
 end
 
---// ---------------------------------------------------------------------------
---// Download + execute each module in order
---// ---------------------------------------------------------------------------
 local function RunModule(filename)
     local url = REPO .. filename
     local src = Fetch(url)
