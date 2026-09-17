@@ -531,4 +531,177 @@ FastStop.Functions = {
 --// ===========================================================================
 H.AutoStrafer = {
     Settings = { Enabled = false, Mode = "Legit", Key = "Space", Toggle = false, Invert = false, SpamDelay = 0.05 },
-    Internal = { Active = false, LastYaw = nil, KeyA = false, KeyD = false, SpamDir = -
+    Internal = { Active = false, LastYaw = nil, KeyA = false, KeyD = false, SpamDir = -1, LastSpam = 0 },
+}
+local AutoStrafer = H.AutoStrafer
+
+local function AS_IsTyping() return UserInputService:GetFocusedTextBox() ~= nil end
+local function AS_GetCameraYaw()
+    local look = workspace.CurrentCamera.CFrame.LookVector
+    return math.atan2(look.X, look.Z)
+end
+local function AS_WrapAngle(d)
+    while d > math.pi do d = d - math.pi * 2 end
+    while d < -math.pi do d = d + math.pi * 2 end
+    return d
+end
+
+local function AS_PressA()
+    if AutoStrafer.Internal.KeyA then return end
+    if UserInputService:IsKeyDown(Enum.KeyCode.A) then return end
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.A, false, game)
+    AutoStrafer.Internal.KeyA = true
+end
+local function AS_ReleaseA()
+    if not AutoStrafer.Internal.KeyA then return end
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.A, false, game)
+    AutoStrafer.Internal.KeyA = false
+end
+local function AS_PressD()
+    if AutoStrafer.Internal.KeyD then return end
+    if UserInputService:IsKeyDown(Enum.KeyCode.D) then return end
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.D, false, game)
+    AutoStrafer.Internal.KeyD = true
+end
+local function AS_ReleaseD()
+    if not AutoStrafer.Internal.KeyD then return end
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.D, false, game)
+    AutoStrafer.Internal.KeyD = false
+end
+local function AS_ReleaseAll() AS_ReleaseA(); AS_ReleaseD() end
+
+local function AS_Update()
+    if H.ShuttingDown then return end
+    local S = AutoStrafer.Settings
+    local I = AutoStrafer.Internal
+    if not S.Enabled or not I.Active then AS_ReleaseAll() return end
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if not hum or hum.Health <= 0 then AS_ReleaseAll() return end
+    if S.Mode == "Spam" then
+        local now = tick()
+        if now - I.LastSpam >= S.SpamDelay then
+            I.LastSpam = now
+            I.SpamDir = -I.SpamDir
+            if I.SpamDir == -1 then
+                AS_PressA()
+                AS_ReleaseD()
+            else
+                AS_PressD()
+                AS_ReleaseA()
+            end
+        end
+        return
+    end
+    local yaw = AS_GetCameraYaw()
+    if I.LastYaw == nil then I.LastYaw = yaw return end
+    local delta = AS_WrapAngle(yaw - I.LastYaw)
+    I.LastYaw = yaw
+    if delta == 0 then AS_ReleaseAll() return end
+    local turningRight = delta > 0
+    if S.Invert then turningRight = not turningRight end
+    if turningRight then
+        AS_PressA()
+        AS_ReleaseD()
+    else
+        AS_PressD()
+        AS_ReleaseA()
+    end
+end
+
+Track(RunService.RenderStepped:Connect(function() xpcall(AS_Update, HandleError) end))
+
+Track(UserInputService.InputBegan:Connect(function(inp, gpe)
+    if gpe or AS_IsTyping() then return end
+    if inp.UserInputType ~= Enum.UserInputType.Keyboard then return end
+    if not AutoStrafer.Settings.Enabled then return end
+    local kc = SafeKeyCode(AutoStrafer.Settings.Key)
+    if not kc or inp.KeyCode ~= kc then return end
+    if AutoStrafer.Settings.Toggle then
+        AutoStrafer.Internal.Active = not AutoStrafer.Internal.Active
+        if not AutoStrafer.Internal.Active then AS_ReleaseAll() end
+    else
+        AutoStrafer.Internal.Active = true
+    end
+end))
+
+Track(UserInputService.InputEnded:Connect(function(inp)
+    if inp.UserInputType ~= Enum.UserInputType.Keyboard then return end
+    local kc = SafeKeyCode(AutoStrafer.Settings.Key)
+    if not kc or inp.KeyCode ~= kc then return end
+    if not AutoStrafer.Settings.Toggle then
+        AutoStrafer.Internal.Active = false
+        AS_ReleaseAll()
+    end
+end))
+
+Track(LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    if H.ShuttingDown then return end
+    AS_ReleaseAll()
+    AutoStrafer.Internal.Active = false
+    AutoStrafer.Internal.LastYaw = nil
+end))
+
+AutoStrafer.Functions = {
+    ResetSettings = function()
+        AS_ReleaseAll()
+        AutoStrafer.Settings = {
+            Enabled = false, Mode = "Legit", Key = "Space", Toggle = false,
+            Invert = false, SpamDelay = 0.05,
+        }
+        AutoStrafer.Internal = {
+            Active = false, LastYaw = nil, KeyA = false, KeyD = false,
+            SpamDir = -1, LastSpam = 0,
+        }
+    end,
+    Stop = function()
+        AutoStrafer.Settings.Enabled = false
+        AutoStrafer.Internal.Active = false
+        AS_ReleaseAll()
+    end,
+}
+AutoStrafer.ReleaseAll = AS_ReleaseAll
+
+--// ===========================================================================
+--// NOCLIP
+--// ===========================================================================
+H.Noclip = { Settings = { Enabled = false }, Internal = { Active = false } }
+local Noclip = H.Noclip
+
+task.spawn(function()
+    while not H.ShuttingDown and task.wait(0.1) do
+        if not Noclip.Settings.Enabled then
+            if Noclip.Internal.Active then
+                Noclip.Internal.Active = false
+                local char = LocalPlayer.Character
+                if char then
+                    for _, part in ipairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then part.CanCollide = true end
+                    end
+                end
+            end
+            continue
+        end
+        Noclip.Internal.Active = true
+        local char = LocalPlayer.Character
+        if char then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = false end
+            end
+        end
+    end
+end)
+
+Noclip.Functions = {
+    ResetSettings = function()
+        Noclip.Settings = { Enabled = false }
+        Noclip.Internal = { Active = false }
+        local char = LocalPlayer.Character
+        if char then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = true end
+            end
+        end
+    end,
+}
